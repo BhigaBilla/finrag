@@ -1,9 +1,9 @@
 """Download annual-report PDFs from BSE's annual report archive.
 
-BSE lists a company's annual reports at an undocumented JSON endpoint. The
-field names are not guaranteed, so the parser looks for the year and any
-PDF file name in each row. Run with --list to see what BSE returns before
-downloading. A company whose report cannot be found is reported, not guessed:
+BSE lists a company's annual reports at an undocumented JSON endpoint (it
+needs the homepage cookie first). Each row has 'Year' (the FY end year),
+'PDFDownload' (full URL) and 'Fld_ReSubmit' (1 for a revised filing). Run
+with --list to see what BSE returns before downloading. A company whose report cannot be found is reported, not guessed:
 drop the PDF into data/raw/<SYMBOL>/<FY>.pdf by hand instead.
 """
 import argparse
@@ -34,22 +34,16 @@ def list_reports(session, code):
 
 
 def fy_label(row):
-    """Map a BSE row to 'FY2025' etc. BSE labels years like '2024-2025' or '2025'."""
-    text = " ".join(str(v) for v in row.values())
-    m = re.search(r"(20\d\d)\s*-\s*(20\d\d|\d\d)\b", text)
-    if m:
-        end = m.group(2)
-        return "FY" + (end if len(end) == 4 else "20" + end)
+    """Map a BSE row to 'FY2025' etc. BSE's 'Year' is the FY end year ('2025')."""
     m = re.search(r"\b(20\d\d)\b", str(row.get("Year", "")))
     return f"FY{m.group(1)}" if m else None
 
 
 def pdf_url(row, code):
-    for v in row.values():
-        s = str(v)
-        if s.lower().endswith(".pdf"):
-            return s if s.startswith("http") else PDF_BASE.format(code=code, name=s)
-    return None
+    s = str(row.get("PDFDownload", "")).replace("\\", "")  # older rows have a stray '\'
+    if not s.lower().endswith(".pdf"):
+        return None
+    return s if s.startswith("http") else PDF_BASE.format(code=code, name=s)
 
 
 def main():
@@ -65,7 +59,10 @@ def main():
         if args.list:
             print(sym, json.dumps(rows[:4], indent=1))
             continue
-        found = {fy_label(r): pdf_url(r, code) for r in rows}
+        # Prefer the original filing; 'Revised' rows (Fld_ReSubmit=1) are resubmissions.
+        found = {}
+        for r in sorted(rows, key=lambda r: r.get("Fld_ReSubmit") == 0):
+            found[fy_label(r)] = pdf_url(r, code)
         for fy in YEARS:
             out = RAW / sym / f"{fy}.pdf"
             if out.exists():
