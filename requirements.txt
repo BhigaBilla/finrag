@@ -1,0 +1,4 @@
+requests
+pymupdf
+pytest
+python-dotenv
