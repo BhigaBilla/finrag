@@ -34,3 +34,11 @@ dense) to 756 (L&T). Where BSE has both an original and a "Revised" filing
 Limitation: PyMuPDF plain-text extraction flattens tables, so numbers in
 financial statements lose their row/column structure. Scanned pages without
 a text layer are not OCR'd.
+
+## Step 2: retrieval
+
+```bash
+python -m src.chunk                  # pages -> 250-word chunks (50 overlap), page-bounded
+python -m src.retrieve --build       # BM25 index + bge-small embeddings
+python -m src.retrieve --query "attrition rate" --company TCS
+```
