@@ -5,6 +5,8 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
 RAW = DATA / "raw"          # downloaded PDFs: raw/<SYMBOL>/<FY>.pdf
 PAGES = DATA / "pages.jsonl"  # one record per PDF page
+CHUNKS = DATA / "chunks.jsonl"  # page-bounded word windows
+INDEX = DATA / "index"  # BM25 pickle + dense embeddings
 
 # 10 Nifty 50 companies across sectors, with BSE scrip codes.
 COMPANIES = {
