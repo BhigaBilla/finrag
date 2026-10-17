@@ -55,3 +55,44 @@ python -m src.pool                         # eval/pool/<qid>.md for judging
 python -m src.evaluate --reranker minilm   # hit@k and MRR per method
 python -m src.evaluate --reranker bge
 ```
+
+### Results (run 2026-10-17, CPU: Intel i5-1334U)
+
+58 of 60 questions have an answer in the report (q09 Infosys guidance and
+q14 Jio ARPU FY2025 are not stated anywhere, so they're excluded). 258 gold
+pages in total, 4.4 per question. Search is filtered to the question's
+company and year. Page-level metrics:
+
+| method | hit@1 | hit@3 | hit@5 | hit@10 | MRR | s/query |
+|---|---|---|---|---|---|---|
+| BM25 | 0.448 | 0.690 | 0.828 | 0.879 | 0.605 | 0.24 |
+| Dense (bge-small) | 0.534 | 0.793 | 0.879 | 0.897 | 0.673 | 0.04 |
+| Hybrid (RRF) | 0.655 | 0.879 | 0.914 | 0.931 | 0.766 | 0.14 |
+| Hybrid + MiniLM-L6 rerank | 0.569 | 0.845 | 0.879 | **0.966** | 0.710 | 1.59 |
+| Hybrid + bge-reranker-base | **0.690** | 0.879 | 0.914 | 0.948 | **0.791** | 9.37 |
+
+By question type (MRR, hybrid / bge rerank): narrative (n=17) 0.794 / 0.819,
+numeric in prose (n=36) 0.792 / 0.809, table-only (n=5) 0.485 / 0.567.
+
+Without the company/year filter (searching all 20 reports), hit@1 drops for
+every method, e.g. hybrid 0.655 -> 0.345 and MiniLM rerank 0.569 -> 0.431,
+while hit@10 stays close (0.914 / 0.966).
+
+What this does and doesn't show:
+- Hybrid clearly beats either retriever alone (MRR 0.766 vs 0.673 dense, 0.605 BM25).
+- The bge reranker's gain over plain hybrid (hit@1 0.690 vs 0.655) is 2
+  questions out of 58, which is within noise (one-sigma on hit@1 is about
+  ±0.06). It costs ~65x the latency on CPU, so the default pipeline uses
+  hybrid without reranking.
+- The small MiniLM reranker (trained on web search) makes rank 1 worse than
+  no reranking. It only helps hit@10.
+- Metadata filtering matters more than any model choice, which is why the
+  agent extracts company and year from the question before searching.
+- Table-only answers are the weak spot (n=5, so treat as indicative only):
+  plain-text PDF extraction scrambles table layout.
+
+Limitations of the evaluation: the questions were written and the gold pages
+judged by Claude (an LLM), not by a human annotator. Labels used pooling
+plus direct text search; 34% of gold pages were found only by the direct
+search, so pooling alone would have under-counted relevant pages. 58
+questions is small, so differences under ~0.1 are not meaningful.
