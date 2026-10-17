@@ -18,7 +18,7 @@ from pydantic import BaseModel, Field
 from .config import COMPANIES, YEARS
 
 MAX_REWRITES = 2
-K_PER_COMPANY = 6
+K_PER_COMPANY = 10
 Company = Literal[tuple(COMPANIES)]
 FY = Literal[tuple(YEARS)]
 
@@ -27,7 +27,13 @@ COMPANY_HINTS = ("RELIANCE (Reliance Industries, Jio, Reliance Retail), TCS (Tat
                  "BHARTIARTL (Bharti Airtel), MARUTI (Maruti Suzuki), SUNPHARMA (Sun Pharma)")
 
 
+OUT_OF_SCOPE = ("I only answer questions about the FY2025 and FY2026 annual reports of these "
+                "companies: Reliance, TCS, Infosys, HDFC Bank, ICICI Bank, ITC, L&T, Bharti Airtel, "
+                "Maruti Suzuki and Sun Pharma.")
+
+
 class Plan(BaseModel):
+    in_scope: bool = Field(description="False if the question is not about these companies' annual reports")
     companies: list[Company] = Field(description="Companies the question is about; empty if none named")
     fy: Optional[FY] = Field(description="Financial year asked about, or null if not specified")
     search_query: str = Field(description="Short keyword-rich search query for the annual report")
@@ -62,7 +68,7 @@ class GeminiBrain:
 
         rpm = float(rpm or os.getenv("LLM_RPM", "8"))  # stay under the free-tier per-minute cap
         limiter = InMemoryRateLimiter(requests_per_second=rpm / 60, max_bucket_size=1)
-        self.llm = init_chat_model(model or os.getenv("LLM_MODEL", "google_genai:gemini-2.5-flash"),
+        self.llm = init_chat_model(model or os.getenv("LLM_MODEL", "google_genai:gemini-3.8-flash"),
                                    temperature=0, rate_limiter=limiter)
 
     def plan(self, question):
@@ -83,7 +89,8 @@ class GeminiBrain:
         return self.llm.with_structured_output(Rewrite).invoke(
             "A search over annual reports found nothing relevant. Write a different search "
             "query using the terms an annual report would use (e.g. table headings, standard "
-            f"financial terms, synonyms).\nQuestion: {question}\nAlready tried: {tried}").search_query
+            "financial terms, synonyms). Plain keywords only: no quotes, OR/AND or other "
+            f"search operators.\nQuestion: {question}\nAlready tried: {tried}").search_query
 
     def answer(self, question, passages):
         if not passages:
@@ -93,7 +100,7 @@ class GeminiBrain:
             "Answer the question using only the passages below. Cite every fact with its tag, "
             "e.g. [TCS FY2026 p.56]. If the passages don't contain the answer, say so plainly "
             "instead of guessing. If standalone and consolidated figures differ, give both.\n\n"
-            f"Question: {question}\n\nPassages:\n{listing}").content
+            f"Question: {question}\n\nPassages:\n{listing}").text
 
 
 def build_graph(retriever, brain):
@@ -101,6 +108,9 @@ def build_graph(retriever, brain):
 
     def understand(s):
         plan = brain.plan(s["question"])
+        if not plan.in_scope:
+            return {"answer": OUT_OF_SCOPE, "companies": [], "fy": None, "tried_queries": [],
+                    "relevant": [], "rewrites": 0}
         return {"companies": list(plan.companies), "fy": plan.fy,
                 "search_query": plan.search_query, "tried_queries": [], "rewrites": 0}
 
@@ -136,7 +146,8 @@ def build_graph(retriever, brain):
                      ("rewrite", rewrite), ("answer", answer)]:
         g.add_node(name, fn)
     g.set_entry_point("understand")
-    g.add_edge("understand", "retrieve")
+    g.add_conditional_edges("understand", lambda s: "end" if s.get("answer") else "retrieve",
+                            {"end": END, "retrieve": "retrieve"})
     g.add_edge("retrieve", "grade")
     g.add_conditional_edges("grade", after_grade, {"answer": "answer", "rewrite": "rewrite"})
     g.add_edge("rewrite", "retrieve")

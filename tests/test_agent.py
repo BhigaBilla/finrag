@@ -16,12 +16,13 @@ class FakeRetriever:
 
 
 class ScriptedBrain:
-    def __init__(self, grades):
+    def __init__(self, grades, in_scope=True):
+        self.in_scope = in_scope
         self.grades = list(grades)
         self.answered_with = None
 
     def plan(self, q):
-        return SimpleNamespace(companies=["TCS"], fy="FY2026", search_query="attrition")
+        return SimpleNamespace(in_scope=self.in_scope, companies=["TCS"], fy="FY2026", search_query="attrition")
 
     def grade(self, q, passages):
         return self.grades.pop(0)
@@ -49,3 +50,10 @@ def test_rewrites_then_gives_up_with_no_passages():
     assert len(r.calls) == MAX_REWRITES + 1
     assert out["tried_queries"] == ["attrition", "query1", "query2"]
     assert b.answered_with == []
+
+
+def test_out_of_scope_skips_retrieval():
+    from src.agent import OUT_OF_SCOPE
+    r, b = FakeRetriever(), ScriptedBrain([], in_scope=False)
+    out = build_graph(r, b).invoke({"question": "What is the capital of France?"})
+    assert out["answer"] == OUT_OF_SCOPE and r.calls == [] and b.answered_with is None

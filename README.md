@@ -109,6 +109,19 @@ like `[TCS FY2026 p.56]`, or a plain "not in the reports".
 python -m src.agent "What was TCS's attrition rate in FY2026?"
 ```
 
-The LLM sits behind LangChain's `init_chat_model` (default Gemini 2.5 Flash,
+The LLM sits behind LangChain's `init_chat_model` (default Gemini 3.8 Flash,
 free tier, rate-limited to 8 requests/min), so the provider is a one-line
 change in `.env`.
+
+First run on 8 questions (2026-10-17): 6 correct, 2 partially correct, 0
+hallucinated. All three "not in the reports" / out-of-scope questions were
+refused correctly, and every citation checked pointed to a page that supports
+the claim. The two partial answers both came from retrieval: for Maruti's
+domestic sales the agent read a chart whose columns were scrambled by PDF
+extraction and offered two figures; for ICICI's RoE it found the standalone
+figure but not the consolidated one. Fixes since: retrieve 10 passages per
+company instead of 6, route out-of-scope questions without searching, and
+keep rewritten queries as plain keywords.
+
+Free-tier limit: Gemini's free tier allows only 20 requests per day per
+model, and one question takes 3 to 6 requests.
