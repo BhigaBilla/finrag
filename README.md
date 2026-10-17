@@ -179,11 +179,18 @@ python -m src.answer_eval summary
 ## Step 7: Docker
 
 The API runs in a CPU-only container (torch from the CPU wheel index). The
-index is mounted at run time rather than baked in, and the keys come from `.env`:
+index is mounted at run time rather than baked in, and `.env` is mounted
+read-only so python-dotenv parses it (`--env-file` would keep any quotes
+around the values and break the keys):
 
 ```bash
 docker build -t finrag .
-docker run -p 8000:8000 --env-file .env -v "$PWD/data:/app/data" finrag
+docker run -p 8000:8000 -v "$PWD/data:/app/data" -v "$PWD/.env:/app/.env:ro" finrag
+curl "localhost:8000/search?q=voluntary%20attrition&company=TCS&fy=FY2026&k=3"
 curl "localhost:8000/ask" -H "content-type: application/json" \
      -d '{"question": "What was TCS'"'"'s attrition rate in FY2026?"}'
 ```
+
+Tested on the i5 laptop (2026-10-17): the image is 2.43 GB, the API is up
+23.5 s after `docker run`, and `/search` returns in 0.22 s (top hit TCS FY2026
+p.56, the gold page for the attrition question).
