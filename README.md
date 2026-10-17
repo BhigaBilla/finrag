@@ -175,3 +175,15 @@ python -m src.answer_eval run
 JUDGE_MODEL=google_genai:<another free model> python -m src.answer_eval judge
 python -m src.answer_eval summary
 ```
+
+## Step 7: Docker
+
+The API runs in a CPU-only container (torch from the CPU wheel index). The
+index is mounted at run time rather than baked in, and the keys come from `.env`:
+
+```bash
+docker build -t finrag .
+docker run -p 8000:8000 --env-file .env -v "$PWD/data:/app/data" finrag
+curl "localhost:8000/ask" -H "content-type: application/json" \
+     -d '{"question": "What was TCS'"'"'s attrition rate in FY2026?"}'
+```
