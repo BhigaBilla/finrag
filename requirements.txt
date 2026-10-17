@@ -9,3 +9,4 @@ langchain
 langgraph
 langchain-google-genai
 pydantic
+mcp>=2

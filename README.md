@@ -125,3 +125,27 @@ keep rewritten queries as plain keywords.
 
 Free-tier limit: Gemini's free tier allows only 20 requests per day per
 model, and one question takes 3 to 6 requests.
+
+## Step 5: MCP server and human approval
+
+`src/mcp_server.py` exposes the search as an MCP server (stdio) with three
+read-only tools: `list_reports`, `search_filings` (hybrid search with
+company/year filters) and `get_page` (full page text, for checking a
+citation). Any MCP client can use it, e.g. Claude Desktop:
+
+```json
+{"mcpServers": {"finrag": {"command": "D:/data/ai_projects/finrag/.venv/Scripts/python.exe",
+  "args": ["-m", "src.mcp_server"], "cwd": "D:/data/ai_projects/finrag"}}}
+```
+
+`python scripts/mcp_smoke.py` starts the server as a client would and calls each tool.
+
+Human approval: the agent pauses after planning (LangGraph `interrupt`) and
+shows the plan (companies, year, search query). You can approve it, reject
+it, or replace the query. The default policy `multi` pauses only when the
+search fans out over several companies or has no company filter, since those
+cost the most calls and are where a wrong plan wastes the most:
+
+```bash
+python -m src.agent "Compare HDFC Bank and ICICI Bank gross NPA in FY2026" --approval multi
+```

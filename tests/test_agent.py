@@ -57,3 +57,44 @@ def test_out_of_scope_skips_retrieval():
     r, b = FakeRetriever(), ScriptedBrain([], in_scope=False)
     out = build_graph(r, b).invoke({"question": "What is the capital of France?"})
     assert out["answer"] == OUT_OF_SCOPE and r.calls == [] and b.answered_with is None
+
+
+def _multi_brain(grades):
+    b = ScriptedBrain(grades)
+    b.plan = lambda q: SimpleNamespace(in_scope=True, companies=["TCS", "INFY"], fy="FY2026",
+                                       search_query="attrition")
+    return b
+
+
+def test_approval_pauses_multi_company_and_resumes_with_edit():
+    from langgraph.checkpoint.memory import InMemorySaver
+    from langgraph.types import Command
+
+    r, b = FakeRetriever(), _multi_brain([[0]])
+    g = build_graph(r, b, approval="multi", checkpointer=InMemorySaver())
+    cfg = {"configurable": {"thread_id": "t1"}}
+    out = g.invoke({"question": "compare"}, cfg)
+    assert out["__interrupt__"][0].value["companies"] == ["TCS", "INFY"] and r.calls == []
+    out = g.invoke(Command(resume={"action": "edit", "companies": ["TCS"], "search_query": "attrition rate"}), cfg)
+    assert out["answer"] == "ok" and r.calls == [("attrition rate", "TCS", "FY2026")]
+
+
+def test_approval_reject_stops_without_search():
+    from langgraph.checkpoint.memory import InMemorySaver
+    from langgraph.types import Command
+
+    r, b = FakeRetriever(), _multi_brain([])
+    g = build_graph(r, b, approval="multi", checkpointer=InMemorySaver())
+    cfg = {"configurable": {"thread_id": "t2"}}
+    g.invoke({"question": "compare"}, cfg)
+    out = g.invoke(Command(resume={"action": "reject"}), cfg)
+    assert out["answer"].startswith("Stopped") and r.calls == []
+
+
+def test_single_company_not_paused_under_multi_policy():
+    from langgraph.checkpoint.memory import InMemorySaver
+
+    r, b = FakeRetriever(), ScriptedBrain([[0]])
+    g = build_graph(r, b, approval="multi", checkpointer=InMemorySaver())
+    out = g.invoke({"question": "q"}, {"configurable": {"thread_id": "t3"}})
+    assert out["answer"] == "ok" and "__interrupt__" not in out
