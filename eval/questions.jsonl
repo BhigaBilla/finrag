@@ -1,0 +1,60 @@
+{"id": "q01", "company": "TCS", "fy": "FY2026", "type": "numeric", "question": "What was TCS's voluntary attrition rate in IT services for FY2026?", "gold_pages": [], "answer": ""}
+{"id": "q02", "company": "TCS", "fy": "FY2026", "type": "numeric", "question": "How many employees did TCS have at the end of FY2026?", "gold_pages": [], "answer": ""}
+{"id": "q03", "company": "TCS", "fy": "FY2025", "type": "numeric", "question": "What total dividend per share did TCS pay for FY2025?", "gold_pages": [], "answer": ""}
+{"id": "q04", "company": "TCS", "fy": "FY2026", "type": "narrative", "question": "How does TCS describe its strategy around AI services and partnerships?", "gold_pages": [], "answer": ""}
+{"id": "q05", "company": "TCS", "fy": "FY2025", "type": "table", "question": "What was TCS's revenue from the BFSI segment in FY2025?", "gold_pages": [], "answer": ""}
+{"id": "q06", "company": "TCS", "fy": "FY2026", "type": "narrative", "question": "Who are TCS's statutory auditors?", "gold_pages": [], "answer": ""}
+{"id": "q07", "company": "INFY", "fy": "FY2026", "type": "numeric", "question": "What was Infosys's operating margin for FY2026?", "gold_pages": [], "answer": ""}
+{"id": "q08", "company": "INFY", "fy": "FY2025", "type": "numeric", "question": "What was Infosys's large deal total contract value (TCV) in FY2025?", "gold_pages": [], "answer": ""}
+{"id": "q09", "company": "INFY", "fy": "FY2026", "type": "narrative", "question": "What revenue growth guidance did Infosys give, and how did it perform against it?", "gold_pages": [], "answer": ""}
+{"id": "q10", "company": "INFY", "fy": "FY2025", "type": "numeric", "question": "What percentage of Infosys employees are women?", "gold_pages": [], "answer": ""}
+{"id": "q11", "company": "INFY", "fy": "FY2026", "type": "table", "question": "What was Infosys's free cash flow in FY2026?", "gold_pages": [], "answer": ""}
+{"id": "q12", "company": "INFY", "fy": "FY2025", "type": "narrative", "question": "What are the key risks Infosys identifies in its risk management report?", "gold_pages": [], "answer": ""}
+{"id": "q13", "company": "RELIANCE", "fy": "FY2026", "type": "numeric", "question": "What was Jio's subscriber base at the end of FY2026?", "gold_pages": [], "answer": ""}
+{"id": "q14", "company": "RELIANCE", "fy": "FY2025", "type": "numeric", "question": "What was Jio's average revenue per user (ARPU) in FY2025?", "gold_pages": [], "answer": ""}
+{"id": "q15", "company": "RELIANCE", "fy": "FY2026", "type": "narrative", "question": "What progress does Reliance report on its new energy giga-factories?", "gold_pages": [], "answer": ""}
+{"id": "q16", "company": "RELIANCE", "fy": "FY2025", "type": "numeric", "question": "How many retail stores did Reliance Retail operate at the end of FY2025?", "gold_pages": [], "answer": ""}
+{"id": "q17", "company": "RELIANCE", "fy": "FY2026", "type": "table", "question": "What was Reliance's consolidated EBITDA for FY2026?", "gold_pages": [], "answer": ""}
+{"id": "q18", "company": "RELIANCE", "fy": "FY2025", "type": "numeric", "question": "How much did Reliance spend on CSR in FY2025?", "gold_pages": [], "answer": ""}
+{"id": "q19", "company": "HDFCBANK", "fy": "FY2026", "type": "numeric", "question": "What was HDFC Bank's gross NPA ratio at the end of FY2026?", "gold_pages": [], "answer": ""}
+{"id": "q20", "company": "HDFCBANK", "fy": "FY2026", "type": "numeric", "question": "What was HDFC Bank's capital adequacy ratio at March 31, 2026?", "gold_pages": [], "answer": ""}
+{"id": "q21", "company": "HDFCBANK", "fy": "FY2025", "type": "numeric", "question": "What was HDFC Bank's CASA ratio at the end of FY2025?", "gold_pages": [], "answer": ""}
+{"id": "q22", "company": "HDFCBANK", "fy": "FY2025", "type": "narrative", "question": "How does HDFC Bank describe the impact of its merger with HDFC Ltd on its balance sheet?", "gold_pages": [], "answer": ""}
+{"id": "q23", "company": "HDFCBANK", "fy": "FY2026", "type": "numeric", "question": "How many branches did HDFC Bank have at the end of FY2026?", "gold_pages": [], "answer": ""}
+{"id": "q24", "company": "HDFCBANK", "fy": "FY2025", "type": "table", "question": "What was HDFC Bank's net interest income for FY2025?", "gold_pages": [], "answer": ""}
+{"id": "q25", "company": "ICICIBANK", "fy": "FY2026", "type": "numeric", "question": "What was ICICI Bank's net NPA ratio at the end of FY2026?", "gold_pages": [], "answer": ""}
+{"id": "q26", "company": "ICICIBANK", "fy": "FY2025", "type": "numeric", "question": "What was ICICI Bank's return on equity for FY2025?", "gold_pages": [], "answer": ""}
+{"id": "q27", "company": "ICICIBANK", "fy": "FY2026", "type": "narrative", "question": "How does ICICI Bank describe its approach to digital banking and its iMobile app?", "gold_pages": [], "answer": ""}
+{"id": "q28", "company": "ICICIBANK", "fy": "FY2025", "type": "numeric", "question": "What was ICICI Bank's provision coverage ratio at the end of FY2025?", "gold_pages": [], "answer": ""}
+{"id": "q29", "company": "ICICIBANK", "fy": "FY2026", "type": "table", "question": "What was ICICI Bank's profit after tax for FY2026?", "gold_pages": [], "answer": ""}
+{"id": "q30", "company": "ICICIBANK", "fy": "FY2025", "type": "narrative", "question": "What were the main areas of ICICI Bank's CSR activities?", "gold_pages": [], "answer": ""}
+{"id": "q31", "company": "ITC", "fy": "FY2026", "type": "numeric", "question": "What share of ITC's revenue came from FMCG businesses other than cigarettes in FY2026?", "gold_pages": [], "answer": ""}
+{"id": "q32", "company": "ITC", "fy": "FY2025", "type": "narrative", "question": "What happened with the demerger of ITC's hotels business?", "gold_pages": [], "answer": ""}
+{"id": "q33", "company": "ITC", "fy": "FY2025", "type": "table", "question": "What was ITC's segment revenue from cigarettes in FY2025?", "gold_pages": [], "answer": ""}
+{"id": "q34", "company": "ITC", "fy": "FY2026", "type": "narrative", "question": "What does ITC report on its water positive and carbon positive status?", "gold_pages": [], "answer": ""}
+{"id": "q35", "company": "ITC", "fy": "FY2026", "type": "numeric", "question": "What dividend per share did ITC declare for FY2026?", "gold_pages": [], "answer": ""}
+{"id": "q36", "company": "ITC", "fy": "FY2025", "type": "numeric", "question": "How many farmers does ITC's e-Choupal or agri business reach?", "gold_pages": [], "answer": ""}
+{"id": "q37", "company": "LT", "fy": "FY2026", "type": "numeric", "question": "What was Larsen & Toubro's order book at the end of FY2026?", "gold_pages": [], "answer": ""}
+{"id": "q38", "company": "LT", "fy": "FY2025", "type": "numeric", "question": "What was L&T's order inflow in FY2025?", "gold_pages": [], "answer": ""}
+{"id": "q39", "company": "LT", "fy": "FY2026", "type": "narrative", "question": "What is L&T's Lakshya strategic plan and what targets does it set?", "gold_pages": [], "answer": ""}
+{"id": "q40", "company": "LT", "fy": "FY2025", "type": "numeric", "question": "What share of L&T's order book comes from international markets?", "gold_pages": [], "answer": ""}
+{"id": "q41", "company": "LT", "fy": "FY2026", "type": "table", "question": "What was L&T's consolidated revenue from operations for FY2026?", "gold_pages": [], "answer": ""}
+{"id": "q42", "company": "LT", "fy": "FY2025", "type": "narrative", "question": "What does L&T say about its green hydrogen and electrolyser business?", "gold_pages": [], "answer": ""}
+{"id": "q43", "company": "BHARTIARTL", "fy": "FY2026", "type": "numeric", "question": "What was Airtel's India mobile ARPU at the end of FY2026?", "gold_pages": [], "answer": ""}
+{"id": "q44", "company": "BHARTIARTL", "fy": "FY2025", "type": "numeric", "question": "How many customers did Bharti Airtel have across its operations in FY2025?", "gold_pages": [], "answer": ""}
+{"id": "q45", "company": "BHARTIARTL", "fy": "FY2026", "type": "narrative", "question": "How does Airtel describe its 5G rollout and spectrum position?", "gold_pages": [], "answer": ""}
+{"id": "q46", "company": "BHARTIARTL", "fy": "FY2025", "type": "narrative", "question": "What does Airtel report about its Africa business?", "gold_pages": [], "answer": ""}
+{"id": "q47", "company": "BHARTIARTL", "fy": "FY2026", "type": "table", "question": "What was Bharti Airtel's consolidated revenue for FY2026?", "gold_pages": [], "answer": ""}
+{"id": "q48", "company": "BHARTIARTL", "fy": "FY2025", "type": "numeric", "question": "What was Airtel's net debt at the end of FY2025?", "gold_pages": [], "answer": ""}
+{"id": "q49", "company": "MARUTI", "fy": "FY2025", "type": "table", "question": "How many vehicles did Maruti Suzuki sell in the domestic market in FY2025?", "gold_pages": [], "answer": ""}
+{"id": "q50", "company": "MARUTI", "fy": "FY2026", "type": "numeric", "question": "How many vehicles did Maruti Suzuki export in FY2026?", "gold_pages": [], "answer": ""}
+{"id": "q51", "company": "MARUTI", "fy": "FY2025", "type": "numeric", "question": "What was Maruti Suzuki's market share in the Indian passenger vehicle market in FY2025?", "gold_pages": [], "answer": ""}
+{"id": "q52", "company": "MARUTI", "fy": "FY2026", "type": "narrative", "question": "What are Maruti Suzuki's plans for electric vehicles?", "gold_pages": [], "answer": ""}
+{"id": "q53", "company": "MARUTI", "fy": "FY2025", "type": "numeric", "question": "What was Maruti Suzuki's net profit for FY2025?", "gold_pages": [], "answer": ""}
+{"id": "q54", "company": "MARUTI", "fy": "FY2026", "type": "narrative", "question": "What does Maruti say about its new manufacturing facility at Kharkhoda?", "gold_pages": [], "answer": ""}
+{"id": "q55", "company": "SUNPHARMA", "fy": "FY2026", "type": "numeric", "question": "What was Sun Pharma's R&D expenditure as a percentage of turnover in FY2026?", "gold_pages": [], "answer": ""}
+{"id": "q56", "company": "SUNPHARMA", "fy": "FY2025", "type": "numeric", "question": "What were Sun Pharma's global specialty sales in FY2025?", "gold_pages": [], "answer": ""}
+{"id": "q57", "company": "SUNPHARMA", "fy": "FY2026", "type": "narrative", "question": "Which specialty products does Sun Pharma highlight in its innovative medicines portfolio?", "gold_pages": [], "answer": ""}
+{"id": "q58", "company": "SUNPHARMA", "fy": "FY2025", "type": "numeric", "question": "What share of the Indian pharmaceutical market does Sun Pharma hold?", "gold_pages": [], "answer": ""}
+{"id": "q59", "company": "SUNPHARMA", "fy": "FY2026", "type": "table", "question": "What was Sun Pharma's consolidated revenue from operations in FY2026?", "gold_pages": [], "answer": ""}
+{"id": "q60", "company": "SUNPHARMA", "fy": "FY2025", "type": "narrative", "question": "What does Sun Pharma report about US FDA inspections of its facilities?", "gold_pages": [], "answer": ""}

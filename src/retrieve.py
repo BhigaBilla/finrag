@@ -13,7 +13,10 @@ import numpy as np
 from .config import CHUNKS, INDEX
 
 EMBED_MODEL = "BAAI/bge-small-en-v1.5"
-RERANK_MODEL = "BAAI/bge-reranker-base"
+RERANKERS = {
+    "bge": "BAAI/bge-reranker-base",                    # 278M params, ~37 s/query on laptop CPU (pool 30)
+    "minilm": "cross-encoder/ms-marco-MiniLM-L-6-v2",   # 22M params
+}
 # bge v1.5 retrieval convention: instruction prefix on queries, not passages.
 QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
 RRF_K = 60
@@ -62,7 +65,7 @@ def build():
 
 
 class Retriever:
-    def __init__(self, rerank=True):
+    def __init__(self, rerank="minilm", rerank_pool=20, rerank_max_length=256):
         from sentence_transformers import SentenceTransformer
 
         self.chunks = load_chunks()
@@ -75,9 +78,10 @@ class Retriever:
         self.emb = np.load(INDEX / "dense.npy")
         self.embedder = SentenceTransformer(EMBED_MODEL)
         self.reranker = None
+        self.rerank_pool = rerank_pool
         if rerank:
             from sentence_transformers import CrossEncoder
-            self.reranker = CrossEncoder(RERANK_MODEL)
+            self.reranker = CrossEncoder(RERANKERS[rerank], max_length=rerank_max_length)
 
     def _mask(self, company, fy):
         m = np.ones(len(self.chunks), dtype=bool)
@@ -105,8 +109,8 @@ class Retriever:
                      self.dense_search(query, pool, company, fy)])
         return fused[:k]
 
-    def rerank_search(self, query, k=10, company=None, fy=None, pool=30):
-        cands = self.hybrid_search(query, pool, company, fy)
+    def rerank_search(self, query, k=10, company=None, fy=None):
+        cands = self.hybrid_search(query, self.rerank_pool, company, fy)
         scores = self.reranker.predict([(query, self.by_id[c]["text"]) for c in cands])
         order = np.argsort(-np.asarray(scores))
         return [cands[i] for i in order[:k]]
@@ -122,11 +126,12 @@ def main():
     ap.add_argument("--company")
     ap.add_argument("--fy")
     ap.add_argument("-k", type=int, default=5)
+    ap.add_argument("--reranker", default="minilm", choices=list(RERANKERS))
     args = ap.parse_args()
     if args.build:
         build()
     if args.query:
-        r = Retriever()
+        r = Retriever(rerank=args.reranker)
         for method in ["bm25", "dense", "hybrid", "rerank"]:
             print(f"\n== {method}")
             for cid in r.search(args.query, method, k=args.k, company=args.company, fy=args.fy):

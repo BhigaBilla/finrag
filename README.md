@@ -42,3 +42,16 @@ python -m src.chunk                  # pages -> 250-word chunks (50 overlap), pa
 python -m src.retrieve --build       # BM25 index + bge-small embeddings
 python -m src.retrieve --query "attrition rate" --company TCS
 ```
+
+## Step 3: retrieval evaluation
+
+60 hand-written questions (6 per company), each tagged narrative / numeric
+(number stated in prose) / table (number only in a table). Gold pages are
+labelled by pooling the top-10 results of every method and judging each
+pooled page, plus a direct text search for answers no method found.
+
+```bash
+python -m src.pool                         # eval/pool/<qid>.md for judging
+python -m src.evaluate --reranker minilm   # hit@k and MRR per method
+python -m src.evaluate --reranker bge
+```
