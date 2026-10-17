@@ -94,3 +94,12 @@ def test_single_company_not_paused_under_multi_policy():
     g = build_graph(r, b, approval="multi", checkpointer=InMemorySaver())
     out = g.invoke({"question": Q_TCS}, {"configurable": {"thread_id": "t3"}})
     assert out["answer"] == "ok" and "__interrupt__" not in out
+
+
+def test_answer_eval_helpers():
+    from src.answer_eval import citation_check, eval_question
+    q = {"question": "Who are TCS's statutory auditors?", "fy": "FY2026", "company": "TCS", "gold_pages": [2]}
+    assert eval_question(q).endswith("(FY2026)")
+    a = {"answer": "B S R & Co. [TCS FY2026 p.2] [TCS FY2026 p.9]",
+         "cited": [{"company": "TCS", "fy": "FY2026", "page": 2}]}
+    assert citation_check(a, q) == {"tags": 2, "tags_not_retrieved": 1, "cites_gold": True}
