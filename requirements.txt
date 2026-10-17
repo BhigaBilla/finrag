@@ -10,3 +10,5 @@ langgraph
 langchain-google-genai
 pydantic
 mcp>=2
+fastapi
+uvicorn
