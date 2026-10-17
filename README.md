@@ -99,11 +99,13 @@ questions is small, so differences under ~0.1 are not meaningful.
 
 ## Step 4: agent
 
-LangGraph graph: **understand** (LLM extracts company, year and a search
-query) -> **retrieve** (hybrid search, filtered) -> **grade** (LLM keeps only
-passages that contain the asked fact) -> **rewrite** the query and retry, up
-to 2 times, if nothing relevant came back -> **answer** with page citations
-like `[TCS FY2026 p.56]`, or a plain "not in the reports".
+LangGraph graph: **understand** (company and year found by name matching, no
+LLM) -> **retrieve** (hybrid search, filtered by company and year) ->
+**answer** (one LLM call that picks the passages containing the asked fact and
+writes the answer with page citations like `[TCS FY2026 p.56]`, or reports
+"not found") -> if nothing was found, **rewrite** the query once and try again.
+A question that names none of the 10 companies gets a fixed out-of-scope reply
+without any search or LLM call.
 
 ```bash
 python -m src.agent "What was TCS's attrition rate in FY2026?"
@@ -123,8 +125,13 @@ figure but not the consolidated one. Fixes since: retrieve 10 passages per
 company instead of 6, route out-of-scope questions without searching, and
 keep rewritten queries as plain keywords.
 
-Free-tier limit: Gemini's free tier allows only 20 requests per day per
-model, and one question takes 3 to 6 requests.
+Cost: the project runs entirely on Gemini's free tier, which allows about 20
+requests per day per model. The first version spent 3 to 6 LLM calls per
+question (planning, grading, answering, rewrites), so the agent was redesigned:
+routing is now rule-based (step 3 showed the company/year filter matters more
+than any retriever choice, and name matching gets it for free), grading and
+answering are one structured call, and only one rewrite is allowed. A typical
+question now costs 1 call, the worst case 3, and out-of-scope questions 0.
 
 ## Step 5: MCP server and human approval
 
@@ -140,11 +147,10 @@ citation). Any MCP client can use it, e.g. Claude Desktop:
 
 `python scripts/mcp_smoke.py` starts the server as a client would and calls each tool.
 
-Human approval: the agent pauses after planning (LangGraph `interrupt`) and
+Human approval: the agent pauses before searching (LangGraph `interrupt`) and
 shows the plan (companies, year, search query). You can approve it, reject
 it, or replace the query. The default policy `multi` pauses only when the
-search fans out over several companies or has no company filter, since those
-cost the most calls and are where a wrong plan wastes the most:
+search fans out over several companies, where a wrong plan wastes the most:
 
 ```bash
 python -m src.agent "Compare HDFC Bank and ICICI Bank gross NPA in FY2026" --approval multi

@@ -3,7 +3,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from src import api
 from src.agent import build_graph
-from tests.test_agent import FakeRetriever, ScriptedBrain, _multi_brain
+from tests.test_agent import Q_TCS, Q_TWO, FakeRetriever, ScriptedBrain
 
 
 def client(brain):
@@ -17,14 +17,14 @@ def client(brain):
 
 def test_ask_answers_with_citations():
     c, _ = client(ScriptedBrain([[1]]))
-    body = c.post("/ask", json={"question": "q"}).json()
+    body = c.post("/ask", json={"question": Q_TCS}).json()
     assert body["status"] == "answered" and body["answer"] == "ok"
     assert body["citations"] == [{"company": "TCS", "fy": "FY2026", "page": 2}]
 
 
 def test_approval_round_trip():
-    c, r = client(_multi_brain([[0]]))
-    body = c.post("/ask", json={"question": "compare", "approval": "multi"}).json()
+    c, r = client(ScriptedBrain([[0]]))
+    body = c.post("/ask", json={"question": Q_TWO, "approval": "multi"}).json()
     assert body["status"] == "needs_approval" and r.calls == []
     body = c.post("/resume", json={"thread_id": body["thread_id"], "action": "approve"}).json()
     assert body["status"] == "answered" and len(r.calls) == 2
