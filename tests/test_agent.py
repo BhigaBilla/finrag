@@ -1,7 +1,10 @@
 """Graph routing with a scripted brain and a fake retriever (no LLM, no index)."""
 from types import SimpleNamespace
 
-from src.agent import MAX_REWRITES, build_graph
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.types import Command
+
+from src.agent import MAX_REWRITES, NOT_FOUND, OUT_OF_SCOPE, build_graph, route
 
 
 class FakeRetriever:
@@ -16,85 +19,78 @@ class FakeRetriever:
 
 
 class ScriptedBrain:
-    def __init__(self, grades, in_scope=True):
-        self.in_scope = in_scope
-        self.grades = list(grades)
-        self.answered_with = None
+    """answers: list of relevant-index lists; [] means 'not found'."""
 
-    def plan(self, q):
-        return SimpleNamespace(in_scope=self.in_scope, companies=["TCS"], fy="FY2026", search_query="attrition")
-
-    def grade(self, q, passages):
-        return self.grades.pop(0)
-
-    def rewrite(self, q, tried):
-        return f"query{len(tried)}"
+    def __init__(self, answers):
+        self.answers = list(answers)
+        self.llm_calls = 0
 
     def answer(self, q, passages):
-        self.answered_with = passages
-        return "ok"
+        self.llm_calls += 1
+        rel = self.answers.pop(0)
+        return SimpleNamespace(relevant=rel, found=bool(rel), answer="ok" if rel else "")
+
+    def rewrite(self, q, tried):
+        self.llm_calls += 1
+        return f"query{len(tried)}"
 
 
-def test_answers_directly_when_first_retrieval_is_relevant():
+Q_TCS = "What was TCS's attrition in FY2026?"
+Q_TWO = "Compare TCS and Infosys attrition in FY2026"
+
+
+def test_route_companies_and_years():
+    assert route(Q_TCS) == (["TCS"], "FY2026")
+    assert route("Jio subscribers in 2025-26") == (["RELIANCE"], "FY2026")
+    assert route("L&T order book at March 31, 2025") == (["LT"], "FY2025")
+    assert route("HDFC Bank vs ICICI NPA") == (["HDFCBANK", "ICICIBANK"], None)
+    assert route("Sun Pharma FY25 and FY26 R&D") == (["SUNPHARMA"], None)
+    assert route("What is the capital of France?") == ([], None)
+
+
+def test_answers_in_one_llm_call():
     r, b = FakeRetriever(), ScriptedBrain([[1]])
-    out = build_graph(r, b).invoke({"question": "q"})
-    assert out["answer"] == "ok" and out["rewrites"] == 0
-    assert [p["page"] for p in b.answered_with] == [2]
-    assert r.calls == [("attrition", "TCS", "FY2026")]  # filter passed through
+    out = build_graph(r, b).invoke({"question": Q_TCS})
+    assert out["answer"] == "ok" and b.llm_calls == 1
+    assert [p["page"] for p in out["relevant"]] == [2]
+    assert r.calls == [(Q_TCS, "TCS", "FY2026")]
 
 
-def test_rewrites_then_gives_up_with_no_passages():
+def test_rewrites_once_then_reports_not_found():
     r, b = FakeRetriever(), ScriptedBrain([[]] * (MAX_REWRITES + 1))
-    out = build_graph(r, b).invoke({"question": "q"})
-    assert out["rewrites"] == MAX_REWRITES
-    assert len(r.calls) == MAX_REWRITES + 1
-    assert out["tried_queries"] == ["attrition", "query1", "query2"]
-    assert b.answered_with == []
+    out = build_graph(r, b).invoke({"question": Q_TCS})
+    assert out["answer"] == NOT_FOUND and out["relevant"] == []
+    assert out["tried_queries"] == [Q_TCS, "query1"]
+    assert b.llm_calls == 2 * MAX_REWRITES + 1
 
 
-def test_out_of_scope_skips_retrieval():
-    from src.agent import OUT_OF_SCOPE
-    r, b = FakeRetriever(), ScriptedBrain([], in_scope=False)
+def test_out_of_scope_costs_no_llm_call():
+    r, b = FakeRetriever(), ScriptedBrain([])
     out = build_graph(r, b).invoke({"question": "What is the capital of France?"})
-    assert out["answer"] == OUT_OF_SCOPE and r.calls == [] and b.answered_with is None
-
-
-def _multi_brain(grades):
-    b = ScriptedBrain(grades)
-    b.plan = lambda q: SimpleNamespace(in_scope=True, companies=["TCS", "INFY"], fy="FY2026",
-                                       search_query="attrition")
-    return b
+    assert out["answer"] == OUT_OF_SCOPE and r.calls == [] and b.llm_calls == 0
 
 
 def test_approval_pauses_multi_company_and_resumes_with_edit():
-    from langgraph.checkpoint.memory import InMemorySaver
-    from langgraph.types import Command
-
-    r, b = FakeRetriever(), _multi_brain([[0]])
+    r, b = FakeRetriever(), ScriptedBrain([[0]])
     g = build_graph(r, b, approval="multi", checkpointer=InMemorySaver())
     cfg = {"configurable": {"thread_id": "t1"}}
-    out = g.invoke({"question": "compare"}, cfg)
+    out = g.invoke({"question": Q_TWO}, cfg)
     assert out["__interrupt__"][0].value["companies"] == ["TCS", "INFY"] and r.calls == []
     out = g.invoke(Command(resume={"action": "edit", "companies": ["TCS"], "search_query": "attrition rate"}), cfg)
     assert out["answer"] == "ok" and r.calls == [("attrition rate", "TCS", "FY2026")]
 
 
 def test_approval_reject_stops_without_search():
-    from langgraph.checkpoint.memory import InMemorySaver
-    from langgraph.types import Command
-
-    r, b = FakeRetriever(), _multi_brain([])
+    r, b = FakeRetriever(), ScriptedBrain([])
     g = build_graph(r, b, approval="multi", checkpointer=InMemorySaver())
     cfg = {"configurable": {"thread_id": "t2"}}
-    g.invoke({"question": "compare"}, cfg)
+    g.invoke({"question": Q_TWO}, cfg)
     out = g.invoke(Command(resume={"action": "reject"}), cfg)
-    assert out["answer"].startswith("Stopped") and r.calls == []
+    assert out["answer"].startswith("Stopped") and r.calls == [] and b.llm_calls == 0
 
 
 def test_single_company_not_paused_under_multi_policy():
-    from langgraph.checkpoint.memory import InMemorySaver
-
     r, b = FakeRetriever(), ScriptedBrain([[0]])
     g = build_graph(r, b, approval="multi", checkpointer=InMemorySaver())
-    out = g.invoke({"question": "q"}, {"configurable": {"thread_id": "t3"}})
+    out = g.invoke({"question": Q_TCS}, {"configurable": {"thread_id": "t3"}})
     assert out["answer"] == "ok" and "__interrupt__" not in out
