@@ -155,3 +155,23 @@ search fans out over several companies, where a wrong plan wastes the most:
 ```bash
 python -m src.agent "Compare HDFC Bank and ICICI Bank gross NPA in FY2026" --approval multi
 ```
+
+## Step 6: answer evaluation (in progress)
+
+Rule-based routing on all 60 eval questions (no LLM): the company was right
+for 60/60. The 38 questions that state a year all got the right year; the
+other 22 state no year, so the agent searches both reports (for the eval, the
+year of the gold answer is appended to these).
+
+`src/answer_eval.py` runs the agent on every question, then has a different
+free Gemini model grade each answer against the reference answer
+(correct / partial / wrong / refused) and check faithfulness against the cited
+passages only. Citation tags are also checked without an LLM. Both steps skip
+finished questions and stop at the daily free quota, so they are spread over
+several days:
+
+```bash
+python -m src.answer_eval run
+JUDGE_MODEL=google_genai:<another free model> python -m src.answer_eval judge
+python -m src.answer_eval summary
+```
