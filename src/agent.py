@@ -1,4 +1,4 @@
-"""LangGraph agent: understand -> retrieve -> grade -> (rewrite -> retrieve)* -> answer.
+"""LangGraph agent: understand -> [human approval] -> retrieve -> grade -> (rewrite -> retrieve)* -> answer.
 
 The graph is deliberately small. The LLM pulls the company and financial
 year out of the question (step 3 showed that metadata filtering matters more
@@ -103,8 +103,20 @@ class GeminiBrain:
             f"Question: {question}\n\nPassages:\n{listing}").text
 
 
-def build_graph(retriever, brain):
+def needs_approval(plan_state, policy):
+    """Human-approval policy. 'multi': pause when the search fans out (several
+    companies, or no company filter), since those cost more LLM calls and are
+    where a wrong plan wastes the most."""
+    if policy == "always":
+        return True
+    if policy == "multi":
+        return len(plan_state["companies"]) != 1
+    return False
+
+
+def build_graph(retriever, brain, approval="never", checkpointer=None):
     from langgraph.graph import END, StateGraph
+    from langgraph.types import interrupt
 
     def understand(s):
         plan = brain.plan(s["question"])
@@ -113,6 +125,20 @@ def build_graph(retriever, brain):
                     "relevant": [], "rewrites": 0}
         return {"companies": list(plan.companies), "fy": plan.fy,
                 "search_query": plan.search_query, "tried_queries": [], "rewrites": 0}
+
+    def approve(s):
+        """Pause for a human. Resume with {"action": "approve"}, {"action": "reject"},
+        or {"action": "edit", "companies": [...], "fy": ..., "search_query": ...}."""
+        if not needs_approval(s, approval):
+            return {}
+        decision = interrupt({"companies": s["companies"], "fy": s["fy"],
+                              "search_query": s["search_query"]})
+        action = decision.get("action")
+        if action == "reject":
+            return {"answer": "Stopped: the search plan was rejected.", "relevant": []}
+        if action == "edit":
+            return {k: decision[k] for k in ("companies", "fy", "search_query") if k in decision}
+        return {}
 
     def retrieve(s):
         targets = s["companies"] or [None]
@@ -142,33 +168,56 @@ def build_graph(retriever, brain):
         return "rewrite"
 
     g = StateGraph(State)
-    for name, fn in [("understand", understand), ("retrieve", retrieve), ("grade", grade),
+    for name, fn in [("understand", understand), ("approve", approve), ("retrieve", retrieve), ("grade", grade),
                      ("rewrite", rewrite), ("answer", answer)]:
         g.add_node(name, fn)
     g.set_entry_point("understand")
-    g.add_conditional_edges("understand", lambda s: "end" if s.get("answer") else "retrieve",
+    g.add_conditional_edges("understand", lambda s: "end" if s.get("answer") else "approve",
+                            {"end": END, "approve": "approve"})
+    g.add_conditional_edges("approve", lambda s: "end" if s.get("answer") else "retrieve",
                             {"end": END, "retrieve": "retrieve"})
     g.add_edge("retrieve", "grade")
     g.add_conditional_edges("grade", after_grade, {"answer": "answer", "rewrite": "rewrite"})
     g.add_edge("rewrite", "retrieve")
     g.add_edge("answer", END)
-    return g.compile()
+    return g.compile(checkpointer=checkpointer)
 
 
-def make_agent():
+def make_agent(approval="never"):
     from dotenv import load_dotenv
+    from langgraph.checkpoint.memory import InMemorySaver
 
     from .retrieve import Retriever
 
     load_dotenv()
-    return build_graph(Retriever(rerank=None), GeminiBrain())
+    return build_graph(Retriever(rerank=None), GeminiBrain(), approval=approval,
+                       checkpointer=InMemorySaver())
+
+
+def ask_human(plan):
+    print(f"\nPlan: companies={plan['companies']} fy={plan['fy']} query={plan['search_query']!r}")
+    choice = input("Approve [y], reject [n], or type a new search query: ").strip()
+    if choice.lower() in ("", "y", "yes"):
+        return {"action": "approve"}
+    if choice.lower() in ("n", "no"):
+        return {"action": "reject"}
+    return {"action": "edit", "search_query": choice}
 
 
 def main():
+    import uuid
+
+    from langgraph.types import Command
+
     ap = argparse.ArgumentParser()
     ap.add_argument("question")
+    ap.add_argument("--approval", choices=["never", "multi", "always"], default="multi")
     args = ap.parse_args()
-    out = make_agent().invoke({"question": args.question})
+    agent = make_agent(args.approval)
+    config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+    out = agent.invoke({"question": args.question}, config)
+    while "__interrupt__" in out:
+        out = agent.invoke(Command(resume=ask_human(out["__interrupt__"][0].value)), config)
     print(out["answer"])
     print(f"\n-- companies={out['companies']} fy={out['fy']} queries={out['tried_queries']} "
           f"relevant={[p['id'] for p in out['relevant']]}")
