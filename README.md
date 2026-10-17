@@ -96,3 +96,19 @@ judged by Claude (an LLM), not by a human annotator. Labels used pooling
 plus direct text search; 34% of gold pages were found only by the direct
 search, so pooling alone would have under-counted relevant pages. 58
 questions is small, so differences under ~0.1 are not meaningful.
+
+## Step 4: agent
+
+LangGraph graph: **understand** (LLM extracts company, year and a search
+query) -> **retrieve** (hybrid search, filtered) -> **grade** (LLM keeps only
+passages that contain the asked fact) -> **rewrite** the query and retry, up
+to 2 times, if nothing relevant came back -> **answer** with page citations
+like `[TCS FY2026 p.56]`, or a plain "not in the reports".
+
+```bash
+python -m src.agent "What was TCS's attrition rate in FY2026?"
+```
+
+The LLM sits behind LangChain's `init_chat_model` (default Gemini 2.5 Flash,
+free tier, rate-limited to 8 requests/min), so the provider is a one-line
+change in `.env`.
