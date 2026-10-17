@@ -202,7 +202,7 @@ def make_agent(approval="never"):
 
 def ask_human(plan):
     print(f"\nPlan: companies={plan['companies']} fy={plan['fy']} query={plan['search_query']!r}")
-    choice = input("Approve [y], reject [n], or type a new search query: ").strip()
+    choice = input("Approve [y], reject [n], or type a new search query: ").strip().lstrip("\ufeff")  # PowerShell pipes add a BOM
     if choice.lower() in ("", "y", "yes"):
         return {"action": "approve"}
     if choice.lower() in ("n", "no"):

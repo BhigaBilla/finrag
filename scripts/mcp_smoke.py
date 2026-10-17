@@ -18,7 +18,7 @@ async def main():
                                ("get_page", {"company": "TCS", "fy": "FY2026", "page": 56})]:
                 res = await session.call_tool(name, args)
                 text = " ".join(getattr(c, "text", "") for c in res.content)
-                print(f"\n{name} -> error={res.isError}\n{text[:600]}")
+                print(f"\n{name} -> error={res.is_error}\n{text[:600]}")
 
 
 asyncio.run(main())
