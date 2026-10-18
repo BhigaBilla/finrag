@@ -43,6 +43,12 @@ def is_quota_error(e):
     return "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e)
 
 
+def quota_detail(e):
+    """Which quota was hit (per-minute vs per-day) and when to retry, from the 429 text."""
+    found = re.findall(r"(quotaId|retryDelay)['\"]?\s*[:=]\s*['\"]?([\w.-]+)", str(e))
+    return ", ".join(f"{k}={v}" for k, v in dict(found).items()) or str(e)[:200]
+
+
 def eval_question(q):
     text = q["question"]
     if route(text)[1] is None:
@@ -81,7 +87,7 @@ def run(limit):
             out = graph.invoke({"question": eval_question(q)})
         except Exception as e:
             if is_quota_error(e):
-                print(f"Daily quota reached at {q['id']}; rerun later.")
+                print(f"Quota reached at {q['id']} ({quota_detail(e)}); rerun later.")
                 break
             raise
         append(ANSWERS, {"id": q["id"], "model": model, "question": eval_question(q), "answer": out["answer"],
@@ -136,7 +142,7 @@ def judge(limit):
             v = llm.invoke(judge_prompt(qs[a["id"]], a, [by_id[c["id"]] for c in a["cited"]]))
         except Exception as e:
             if is_quota_error(e):
-                print(f"Daily quota reached at {a['id']}; rerun later.")
+                print(f"Quota reached at {a['id']} ({quota_detail(e)}); rerun later.")
                 break
             raise
         append(JUDGEMENTS, {"id": a["id"], "answered_by": a.get("model"), "judge": model, **v.model_dump()})
