@@ -43,6 +43,29 @@ def is_quota_error(e):
     return "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e)
 
 
+class DailyQuota(Exception):
+    pass
+
+
+def call(fn, retries=2):
+    """Run fn; wait out a per-minute 429 (up to `retries` times), raise DailyQuota on a per-day one.
+    The model is built with max_retries=0, so this is the only retrying."""
+    import time
+
+    for attempt in range(retries + 1):
+        try:
+            return fn()
+        except Exception as e:
+            if not is_quota_error(e):
+                raise
+            if "PerDay" in str(e) or attempt == retries:
+                raise DailyQuota(quota_detail(e)) from e
+            delay = re.search(r"retryDelay['\"]?\s*[:=]\s*['\"]?(\d+)", str(e))
+            wait = min(int(delay.group(1)) if delay else 60, 120) + 2
+            print(f"  per-minute limit ({quota_detail(e)}), waiting {wait} s")
+            time.sleep(wait)
+
+
 def quota_detail(e):
     """Which quota was hit (per-minute vs per-day) and when to retry, from the 429 text."""
     found = re.findall(r"(quotaId|retryDelay)['\"]?\s*[:=]\s*['\"]?([\w.-]+)", str(e))
@@ -84,12 +107,10 @@ def run(limit):
     for q in todo:
         before = brain.calls
         try:
-            out = graph.invoke({"question": eval_question(q)})
-        except Exception as e:
-            if is_quota_error(e):
-                print(f"Quota reached at {q['id']} ({quota_detail(e)}); rerun later.")
-                break
-            raise
+            out = call(lambda: graph.invoke({"question": eval_question(q)}))
+        except DailyQuota as e:
+            print(f"Daily quota reached at {q['id']} ({e}); rerun after the reset.")
+            break
         append(ANSWERS, {"id": q["id"], "model": model, "question": eval_question(q), "answer": out["answer"],
                          "found": out.get("found", False), "llm_calls": brain.calls - before,
                          "queries": out.get("tried_queries", []),
@@ -138,13 +159,12 @@ def judge(limit):
     # never let a model grade its own answers
     todo = [a for a in load(ANSWERS) if a["id"] not in done and a.get("model") != model][:limit]
     for a in todo:
+        prompt = judge_prompt(qs[a["id"]], a, [by_id[c["id"]] for c in a["cited"]])
         try:
-            v = llm.invoke(judge_prompt(qs[a["id"]], a, [by_id[c["id"]] for c in a["cited"]]))
-        except Exception as e:
-            if is_quota_error(e):
-                print(f"Quota reached at {a['id']} ({quota_detail(e)}); rerun later.")
-                break
-            raise
+            v = call(lambda: llm.invoke(prompt))
+        except DailyQuota as e:
+            print(f"Daily quota reached at {a['id']} ({e}); rerun after the reset.")
+            break
         append(JUDGEMENTS, {"id": a["id"], "answered_by": a.get("model"), "judge": model, **v.model_dump()})
         print(a["id"], v.correctness, "faithful" if v.faithful else "UNFAITHFUL", v.reason[:90])
     print(f"{len(load(JUDGEMENTS))}/{len(load(ANSWERS))} judged (answers from {model} are left for another judge)")

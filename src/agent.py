@@ -89,7 +89,9 @@ class GeminiBrain:
         rpm = float(rpm or os.getenv("LLM_RPM", "8"))  # stay under the free-tier per-minute cap
         limiter = InMemoryRateLimiter(requests_per_second=rpm / 60, max_bucket_size=1)
         self.llm = init_chat_model(model or os.getenv("LLM_MODEL", "google_genai:gemini-3.8-flash"),
-                                   temperature=0, rate_limiter=limiter)
+                                   temperature=0, rate_limiter=limiter,
+                                   # no silent retries: on the free tier each retry spends daily quota
+                                   max_retries=0)
 
     def answer(self, question, passages):
         listing = "\n\n".join(f"[{i}] [{p['company']} {p['fy']} p.{p['page']}] {p['text']}"

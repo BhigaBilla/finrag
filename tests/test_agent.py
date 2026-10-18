@@ -103,3 +103,24 @@ def test_answer_eval_helpers():
     a = {"answer": "B S R & Co. [TCS FY2026 p.2] [TCS FY2026 p.9]",
          "cited": [{"company": "TCS", "fy": "FY2026", "page": 2}]}
     assert citation_check(a, q) == {"tags": 2, "tags_not_retrieved": 1, "cites_gold": True}
+
+
+def test_quota_handling_waits_on_per_minute_and_stops_on_per_day(monkeypatch):
+    import time
+
+    import pytest
+
+    from src.answer_eval import DailyQuota, call
+    monkeypatch.setattr(time, "sleep", lambda s: None)
+    errs = [Exception("429 RESOURCE_EXHAUSTED quotaId: GenerateRequestsPerMinutePerProjectPerModel-FreeTier, retryDelay: 30s")]
+
+    def flaky():
+        if errs:
+            raise errs.pop()
+        return "ok"
+    assert call(flaky) == "ok"
+
+    def daily():
+        raise Exception("429 RESOURCE_EXHAUSTED quotaId: GenerateRequestsPerDayPerProjectPerModel-FreeTier")
+    with pytest.raises(DailyQuota):
+        call(daily)
