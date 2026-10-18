@@ -72,7 +72,8 @@ def run(limit):
     load_dotenv()
     done = {r["id"] for r in load(ANSWERS)}
     todo = [q for q in load(QUESTIONS) if q["id"] not in done][:limit]
-    retriever, brain = Retriever(rerank=None), CountingBrain(GeminiBrain())
+    model = os.getenv("LLM_MODEL", "google_genai:gemini-3.8-flash")
+    retriever, brain = Retriever(rerank=None), CountingBrain(GeminiBrain(model=model))
     graph = build_graph(retriever, brain)
     for q in todo:
         before = brain.calls
@@ -83,7 +84,7 @@ def run(limit):
                 print(f"Daily quota reached at {q['id']}; rerun later.")
                 break
             raise
-        append(ANSWERS, {"id": q["id"], "question": eval_question(q), "answer": out["answer"],
+        append(ANSWERS, {"id": q["id"], "model": model, "question": eval_question(q), "answer": out["answer"],
                          "found": out.get("found", False), "llm_calls": brain.calls - before,
                          "queries": out.get("tried_queries", []),
                          "cited": [{"id": p["id"], "company": p["company"], "fy": p["fy"],
@@ -128,7 +129,8 @@ def judge(limit):
     by_id = Retriever(rerank=None).by_id
     qs = {q["id"]: q for q in load(QUESTIONS)}
     done = {r["id"] for r in load(JUDGEMENTS)}
-    todo = [a for a in load(ANSWERS) if a["id"] not in done][:limit]
+    # never let a model grade its own answers
+    todo = [a for a in load(ANSWERS) if a["id"] not in done and a.get("model") != model][:limit]
     for a in todo:
         try:
             v = llm.invoke(judge_prompt(qs[a["id"]], a, [by_id[c["id"]] for c in a["cited"]]))
@@ -137,9 +139,9 @@ def judge(limit):
                 print(f"Daily quota reached at {a['id']}; rerun later.")
                 break
             raise
-        append(JUDGEMENTS, {"id": a["id"], "judge": model, **v.model_dump()})
+        append(JUDGEMENTS, {"id": a["id"], "answered_by": a.get("model"), "judge": model, **v.model_dump()})
         print(a["id"], v.correctness, "faithful" if v.faithful else "UNFAITHFUL", v.reason[:90])
-    print(f"{len(load(JUDGEMENTS))}/{len(load(ANSWERS))} judged")
+    print(f"{len(load(JUDGEMENTS))}/{len(load(ANSWERS))} judged (answers from {model} are left for another judge)")
 
 
 def citation_check(a, q):
