@@ -56,6 +56,10 @@ def call(fn, retries=2):
         try:
             return fn()
         except Exception as e:
+            if is_overloaded(e) and attempt < retries:
+                print(f"  model overloaded (503), waiting 60 s")
+                time.sleep(60)
+                continue
             if not is_quota_error(e):
                 raise
             if "PerDay" in str(e) or attempt == retries:
@@ -64,6 +68,10 @@ def call(fn, retries=2):
             wait = min(int(delay.group(1)) if delay else 60, 120) + 2
             print(f"  per-minute limit ({quota_detail(e)}), waiting {wait} s")
             time.sleep(wait)
+
+
+def is_overloaded(e):
+    return "503" in str(e) or "UNAVAILABLE" in str(e)
 
 
 def quota_detail(e):
