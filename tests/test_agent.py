@@ -124,3 +124,17 @@ def test_quota_handling_waits_on_per_minute_and_stops_on_per_day(monkeypatch):
         raise Exception("429 RESOURCE_EXHAUSTED quotaId: GenerateRequestsPerDayPerProjectPerModel-FreeTier")
     with pytest.raises(DailyQuota):
         call(daily)
+
+
+def test_overloaded_model_is_retried(monkeypatch):
+    import time
+
+    from src.answer_eval import call
+    monkeypatch.setattr(time, "sleep", lambda s: None)
+    errs = [Exception("503 UNAVAILABLE This model is currently experiencing high demand")]
+
+    def flaky():
+        if errs:
+            raise errs.pop()
+        return "ok"
+    assert call(flaky) == "ok"
