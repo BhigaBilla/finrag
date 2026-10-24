@@ -27,7 +27,18 @@ from .config import ROOT
 EVAL = ROOT / "eval"
 QUESTIONS, ANSWERS, JUDGEMENTS = EVAL / "questions.jsonl", EVAL / "answers.jsonl", EVAL / "judgements.jsonl"
 NOT_IN_REPORT = "NOT IN REPORT"
-TAG = re.compile(r"\[([A-Z]+) (FY\d{4}) p\.(\d+)\]")
+TAG = re.compile(r"\[([A-Z]+ FY\d{4} p\.\d+[^\]]*)\]")  # also "[X FY p.43, p.61]" and "[X FY p.1, Y FY p.2]"
+CITE = re.compile(r"(?:([A-Z]+) (FY\d{4}) )?p\.(\d+)")
+
+
+def parse_tags(answer):
+    tags = set()
+    for group in TAG.findall(answer):
+        company = fy = None
+        for c, y, p in CITE.findall(group):
+            company, fy = (c, y) if c else (company, fy)
+            tags.add((company, fy, int(p)))
+    return tags
 
 
 def load(path):
@@ -180,7 +191,7 @@ def judge(limit):
 
 def citation_check(a, q):
     """No LLM: do the answer's citation tags point to retrieved passages, and to gold pages?"""
-    tags = {(c, fy, int(p)) for c, fy, p in TAG.findall(a["answer"])}
+    tags = parse_tags(a["answer"])
     retrieved = {(c["company"], c["fy"], c["page"]) for c in a["cited"]}
     gold = {(q["company"], q["fy"], p) for p in q["gold_pages"]}
     return {"tags": len(tags), "tags_not_retrieved": len(tags - retrieved),

@@ -138,3 +138,10 @@ def test_overloaded_model_is_retried(monkeypatch):
             raise errs.pop()
         return "ok"
     assert call(flaky) == "ok"
+
+
+def test_parse_tags_handles_grouped_citations():
+    from src.answer_eval import parse_tags
+    assert parse_tags("x [LT FY2026 p.10, LT FY2026 p.44] y [HDFCBANK FY2026 p.43, p.61] [TCS FY2026 p.2]") == {
+        ("LT", "FY2026", 10), ("LT", "FY2026", 44), ("HDFCBANK", "FY2026", 43),
+        ("HDFCBANK", "FY2026", 61), ("TCS", "FY2026", 2)}
