@@ -207,6 +207,11 @@ gpt-oss said "partial" because the answer added or omitted a detail. So the
 correct/partial split depends on the judge; the faithfulness and
 wrong-answer counts are the more robust numbers.
 
+Raw outputs are in `eval/`: every answer with its citations and call count
+(`answers.jsonl`), the gpt-oss-120b grades (`judgements.jsonl`), the 7
+Gemini grades used for the judge comparison (`judgements_gemini.jsonl`) and
+the numbers above (`answer_summary.json`).
+
 ```bash
 python -m src.answer_eval run                                   # LLM_MODEL in .env
 JUDGE_MODEL=groq:openai/gpt-oss-120b python -m src.answer_eval judge   # GROQ_API_KEY in .env
