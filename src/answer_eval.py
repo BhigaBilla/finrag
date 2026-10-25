@@ -170,7 +170,7 @@ def judge(limit):
     load_dotenv()
     model = os.getenv("JUDGE_MODEL")
     if not model:
-        sys.exit("Set JUDGE_MODEL to a different model from LLM_MODEL (another free model from your AI Studio rate-limit page)")
+        sys.exit("Set JUDGE_MODEL to a model other than the answering ones, e.g. groq:<model id> with GROQ_API_KEY in .env")
     llm = GeminiBrain(model=model).llm.with_structured_output(Verdict)
     by_id = Retriever(rerank=None).by_id
     qs = {q["id"]: q for q in load(QUESTIONS)}
