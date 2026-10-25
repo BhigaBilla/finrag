@@ -156,23 +156,60 @@ search fans out over several companies, where a wrong plan wastes the most:
 python -m src.agent "Compare HDFC Bank and ICICI Bank gross NPA in FY2026" --approval multi
 ```
 
-## Step 6: answer evaluation (in progress)
+## Step 6: answer evaluation
 
 Rule-based routing on all 60 eval questions (no LLM): the company was right
 for 60/60. The 38 questions that state a year all got the right year; the
 other 22 state no year, so the agent searches both reports (for the eval, the
 year of the gold answer is appended to these).
 
-`src/answer_eval.py` runs the agent on every question, then has a different
-free Gemini model grade each answer against the reference answer
-(correct / partial / wrong / refused) and check faithfulness against the cited
-passages only. Citation tags are also checked without an LLM. Both steps skip
-finished questions and stop at the daily free quota, so they are spread over
-several days:
+`src/answer_eval.py` runs the agent on every question, then an LLM judge
+grades each answer against the reference answer (correct / partial / wrong)
+and checks faithfulness against the cited passages only. Citation tags are
+also checked without an LLM. Both steps skip finished questions and stop
+cleanly at a daily free quota.
+
+Answers came from Gemini 3.5/3.7/3.8 Flash (free tier; spread across models
+because of the 20 requests/day cap). The judge is `openai/gpt-oss-120b` on
+Groq's free tier, a different model family from the answering models.
+
+### Results (run 2026-10-17 to 2026-10-25)
+
+| | Result |
+|---|---|
+| Correct / partial / wrong (58 answerable) | **38 / 19 / 1** (66% / 33% / 2%) |
+| Numeric (36) | 30 / 5 / 1 |
+| Narrative (17) | 4 / 13 / 0 |
+| Table (5) | 4 / 1 / 0 |
+| Faithful to cited passages | **57 / 58** |
+| Answers citing at least one gold page | 56 / 58 |
+| "Not in the reports" questions refused | 2 / 2 |
+| LLM calls per question | 1 for 46/60; mean 1.57 |
+
+What the numbers say:
+- No hallucinated facts. The one unfaithful answer (Maruti domestic sales) is
+  the chart whose columns PDF extraction scrambles: the agent saw two
+  candidate numbers and hedged between them instead of picking one.
+- The one wrong answer (L&T order book) gave the standalone figure where the
+  reference has the group figure; the number itself is in the report.
+- Most "partial" grades are narrative questions where the answer is accurate
+  but leaves out points the (long) reference answer lists, or numeric
+  answers that give one of standalone/consolidated where the reference has
+  the other or both.
+- The mean of 1.57 calls includes calls repeated after Gemini "overloaded"
+  (503) errors, not only query rewrites.
+
+Limitations: the reference answers and gold pages were written with an LLM
+(Claude) reading the reports, not by a human analyst; the judge is a single
+LLM. On the 7 answers both graded, Gemini 3.6 Flash and gpt-oss-120b agreed
+on faithfulness 7/7 but on correctness only 4/7: Gemini said "correct" where
+gpt-oss said "partial" because the answer added or omitted a detail. So the
+correct/partial split depends on the judge; the faithfulness and
+wrong-answer counts are the more robust numbers.
 
 ```bash
-python -m src.answer_eval run
-JUDGE_MODEL=google_genai:<another free model> python -m src.answer_eval judge
+python -m src.answer_eval run                                   # LLM_MODEL in .env
+JUDGE_MODEL=groq:openai/gpt-oss-120b python -m src.answer_eval judge   # GROQ_API_KEY in .env
 python -m src.answer_eval summary
 ```
 
