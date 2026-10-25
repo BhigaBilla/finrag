@@ -1,0 +1,38 @@
+{
+  "answered": 60,
+  "judged": 58,
+  "correctness": {
+    "correct": 38,
+    "partial": 19,
+    "wrong": 1
+  },
+  "correctness_by_type": {
+    "numeric": {
+      "correct": 30,
+      "partial": 5,
+      "wrong": 1
+    },
+    "narrative": {
+      "partial": 13,
+      "correct": 4
+    },
+    "table": {
+      "correct": 4,
+      "partial": 1
+    }
+  },
+  "faithful_rate_of_non_refusals": "57/58",
+  "answers_citing_a_gold_page": "56/58",
+  "answers_with_a_citation_not_retrieved": 2,
+  "answers_without_citation_tag": 0,
+  "not_in_report_refused": "2/2",
+  "llm_calls": {
+    "1": 46,
+    "3": 6,
+    "9": 1,
+    "2": 5,
+    "4": 1,
+    "7": 1
+  },
+  "mean_llm_calls": 1.57
+}
