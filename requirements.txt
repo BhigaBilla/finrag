@@ -12,3 +12,4 @@ pydantic
 mcp>=2
 fastapi
 uvicorn
+langchain-groq
